@@ -1,6 +1,7 @@
 gm    = require('gm')
 fs    = require('fs')
 temp  = require('temp')
+{Stream} = require('stream')
 
 MAX_W      = 14
 MIFF_START = 'comment={'
@@ -9,7 +10,10 @@ MIFF_END    = '\x0A}\x0A\x0C\x0A'
 exports.topColours = (sourceFilename, sorted, cb) ->
   img = gm(sourceFilename)
   tmpFilename = temp.path({suffix: '.miff'})
-  img.size((err, wh) ->
+  options = {}
+  if sourceFilename instanceof Stream
+    options.bufferStream = yes
+  img.size(options, (err, wh) ->
     console.log err if err
     
     ratio = wh.width/MAX_W
