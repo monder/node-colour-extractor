@@ -14,7 +14,9 @@ exports.topColours = (sourceFilename, sorted, cb) ->
   if sourceFilename instanceof Stream
     options.bufferStream = yes
   img.size(options, (err, wh) ->
-    console.log err if err
+    if err
+      console.log err
+      return cb()
     
     ratio = wh.width/MAX_W
     w2 = wh.width/2
@@ -24,7 +26,9 @@ exports.topColours = (sourceFilename, sorted, cb) ->
        .crop(w2, h2, w2/2, w2/2)                  # Center should be the most interesting
        .scale(Math.ceil(wh.height/ratio), MAX_W)  # Scales the image, histogram generation can take some time
        .write('histogram:' + tmpFilename, (err) ->
-          console.log err if err
+          if err
+            console.log err
+            return cb()
 
           histogram = ''
           miffRS = fs.createReadStream(tmpFilename, {encoding: 'utf8'})
