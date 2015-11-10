@@ -14,48 +14,52 @@ exports.topColours = (sourceFilename, sorted, cb) ->
   if sourceFilename instanceof Stream
     options.bufferStream = yes
   img.size(options, (err, wh) ->
-    if err
-      console.log err
-      return cb()
-    
-    ratio = wh.width/MAX_W
-    w2 = wh.width/2
-    h2 = wh.height/2
-    img.noProfile()                               # Removes EXIF data
-       .bitdepth(8)                               # Initial colour reduction, prob. smarter than our 'algorithm'
-       .crop(w2, h2, w2/2, w2/2)                  # Center should be the most interesting
-       .scale(Math.ceil(wh.height/ratio), MAX_W)  # Scales the image, histogram generation can take some time
-       .write('histogram:' + tmpFilename, (err) ->
-          if err
-            console.log err
-            return cb()
+    try
+       if err
+         console.log err
+         return cb()
+       
+       ratio = wh.width/MAX_W
+       w2 = wh.width/2
+       h2 = wh.height/2
+       img.noProfile()                               # Removes EXIF data
+          .bitdepth(8)                               # Initial colour reduction, prob. smarter than our 'algorithm'
+          .crop(w2, h2, w2/2, w2/2)                  # Center should be the most interesting
+          .scale(Math.ceil(wh.height/ratio), MAX_W)  # Scales the image, histogram generation can take some time
+          .write('histogram:' + tmpFilename, (err) ->
+             if err
+               console.log err
+               return cb()
 
-          histogram = ''
-          miffRS = fs.createReadStream(tmpFilename, {encoding: 'utf8'})
+             histogram = ''
+             miffRS = fs.createReadStream(tmpFilename, {encoding: 'utf8'})
 
-          miffRS.addListener('data', (chunk) ->
-            endDelimPos = chunk.indexOf(MIFF_END)
+             miffRS.addListener('data', (chunk) ->
+               endDelimPos = chunk.indexOf(MIFF_END)
 
-            if endDelimPos != -1
-              histogram += chunk.slice(0, endDelimPos + MIFF_END.length)
-              miffRS.destroy()
-            else
-              histogram += chunk
-          )
+               if endDelimPos != -1
+                 histogram += chunk.slice(0, endDelimPos + MIFF_END.length)
+                 miffRS.destroy()
+               else
+                 histogram += chunk
+             )
 
-          miffRS.addListener('close', ->
-            fs.unlink(tmpFilename)
+             miffRS.addListener('close', ->
+               fs.unlink(tmpFilename)
 
-            histogram_start = histogram.indexOf(MIFF_START) + MIFF_START.length
-            colours = reduceSimilar(clean(histogram.slice(histogram_start)
-                                      .split('\n')
-                                      .slice(1, -3)
-                                      .map(parseHistogramLine)
-                                      ))
-            colours = colours.sort(sortByFrequency) if sorted
-            cb(colours)
-          )
-        )
+               histogram_start = histogram.indexOf(MIFF_START) + MIFF_START.length
+               colours = reduceSimilar(clean(histogram.slice(histogram_start)
+                                         .split('\n')
+                                         .slice(1, -3)
+                                         .map(parseHistogramLine)
+                                         ))
+               colours = colours.sort(sortByFrequency) if sorted
+               cb(colours)
+             )
+           )
+    catch err
+       console.log err
+       return cb()
   )
 
 exports.colourKey = (path, cb) ->
